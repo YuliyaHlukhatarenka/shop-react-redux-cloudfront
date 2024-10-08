@@ -1,3 +1,6 @@
+[CloudFront URL](https://d1nhm1z4iqfod4.cloudfront.net/)
+[S3](https://us-east-1.console.aws.amazon.com/s3/buckets?region=us-east-1&bucketType=general&region=us-east-1)
+
 # React-shop-cloudfront
 
 This is frontend starter project for nodejs-aws mentoring program. It uses the following technologies:
