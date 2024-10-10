@@ -1,5 +1,5 @@
 [CloudFront URL](https://d1nhm1z4iqfod4.cloudfront.net/)
-[S3](https://us-east-1.console.aws.amazon.com/s3/buckets?region=us-east-1&bucketType=general&region=us-east-1)
+[S3](https://deploywebappstack-deploymentfrontendbucket67ceb713-li7m47dl8gvr.s3.amazonaws.com/)
 
 # React-shop-cloudfront
 
