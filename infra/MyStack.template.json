@@ -8,10 +8,12 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
       Tags:
+        - Key: aws-cdk:auto-delete-objects
+          Value: "true"
         - Key: aws-cdk:cr-owned:1ce7d1df
           Value: "true"
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
     Metadata:
       aws:cdk:path: DeployWebAppStack/deployment/FrontendBucket/Resource
   deploymentFrontendBucketPolicyF959E265:
@@ -21,6 +23,27 @@ Resources:
         Ref: deploymentFrontendBucket67CEB713
       PolicyDocument:
         Statement:
+          - Action:
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:List*
+              - s3:PutBucketPolicy
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+                  - Arn
+            Resource:
+              - Fn::GetAtt:
+                  - deploymentFrontendBucket67CEB713
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - deploymentFrontendBucket67CEB713
+                        - Arn
+                    - /*
           - Action: s3:GetObject
             Effect: Allow
             Principal:
@@ -38,6 +61,21 @@ Resources:
         Version: "2012-10-17"
     Metadata:
       aws:cdk:path: DeployWebAppStack/deployment/FrontendBucket/Policy/Resource
+  deploymentFrontendBucketAutoDeleteObjectsCustomResourceD9E2DAF7:
+    Type: Custom::S3AutoDeleteObjects
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F
+          - Arn
+      BucketName:
+        Ref: deploymentFrontendBucket67CEB713
+    DependsOn:
+      - deploymentFrontendBucketPolicyF959E265
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: DeployWebAppStack/deployment/FrontendBucket/AutoDeleteObjectsCustomResource/Default
   deploymentCloudfrontDistributionOrigin1S3Origin6A73ABD8:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
@@ -81,11 +119,11 @@ Resources:
     Properties:
       Content:
         S3Bucket: cdk-hnb659fds-assets-686255979517-us-east-1
-        S3Key: 3f976aebf692cc9a0dcea3c98448e04a5394190cad4fd219bfada2c498098a5f.zip
+        S3Key: 31a54de8fc55600d6d0d5ad60b980b65f0fa40116c6f0eec37facc3b4d11f6b8.zip
       Description: /opt/awscli/aws
     Metadata:
       aws:cdk:path: DeployWebAppStack/deployment/BucketDeployment/AwsCliLayer/Resource
-      aws:asset:path: asset.3f976aebf692cc9a0dcea3c98448e04a5394190cad4fd219bfada2c498098a5f.zip
+      aws:asset:path: asset.31a54de8fc55600d6d0d5ad60b980b65f0fa40116c6f0eec37facc3b4d11f6b8.zip
       aws:asset:is-bundled: false
       aws:asset:property: Content
   deploymentBucketDeploymentCustomResourceF86F2BCD:
@@ -98,7 +136,7 @@ Resources:
       SourceBucketNames:
         - cdk-hnb659fds-assets-686255979517-us-east-1
       SourceObjectKeys:
-        - 44ac7a4badf3b28f0ff2dc648f40d5397cf9fb0e72431f308e2a472d2fe681b6.zip
+        - a37b18731803247a8fff4e206b3d71bbe984e2f183602163c250e587e957a5f1.zip
       DestinationBucketName:
         Ref: deploymentFrontendBucket67CEB713
       Prune: true
@@ -111,6 +149,46 @@ Resources:
     DeletionPolicy: Delete
     Metadata:
       aws:cdk:path: DeployWebAppStack/deployment/BucketDeployment/CustomResource/Default
+  CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: DeployWebAppStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role
+  CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-686255979517-us-east-1
+        S3Key: faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip
+      Timeout: 900
+      MemorySize: 128
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+          - Arn
+      Runtime: nodejs20.x
+      Description:
+        Fn::Join:
+          - ""
+          - - "Lambda function for auto-deleting objects in "
+            - Ref: deploymentFrontendBucket67CEB713
+            - " S3 bucket."
+    DependsOn:
+      - CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092
+    Metadata:
+      aws:cdk:path: DeployWebAppStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler
+      aws:asset:path: asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6
+      aws:asset:property: Code
   CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265:
     Type: AWS::IAM::Role
     Properties:
@@ -204,7 +282,7 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/3VQy2rDMBD8ltyVbeNA745DoFBIcaBXI8ubsLEsBa3UYIT/vbKd16WnGQ27M6vJYPWxgtVCXnmpmnapqYZ48FK1IklV5DXETVAtelEczY3N8G01qf4p397zYyMZB6G0Dc3RWeMhbom9ozp4skbsHZ3I5Eoh82eDxpOfnIpxYTcu/DfxajMIXlexwYu2fZdGYM7ePgQhmdEz5CMMQsuubiTEZPMle3Q/6Hi85kDmpNFbswtGTfc9SBq980GQ7CCWVuMoT/jsYGbDPaTSY0CVOlSaIL9yoWnKFNMtqeH0u5MoAnvblcg2ODXbvvB98JfgxV0ahLENwpnffrMMMnhfnJlo6UIqp0MoZ/wD7tswc9IBAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/3VQXWsCMRD8Lb7HbT2h73oiFAqKQl+PmERZzSWSTRQJ+e9NLn6UQp9mMszObqaByccEJiN+pbGQp7HGHcSt5+LEstRFmkKcB3FSnrV7c2cV1lajuL3k+7s+5pxUYkLbIPfOGg9xgeQd7oJHa9jK4QHNTAhF9CmV8eiHpLYMLMvAf47fMYnRtItSnbW99dkCdffiKTBOpDzBrEBimvc7ySHmmC9+U+5bOSrXbNEctPLWLIMRw31Pkq0PnhjyHuLGalXkAV8dVJYSawN5228U2eBEdT543d/psrvL9QqNMLtSq3E4hw1n5vLzxw9lcBX8Ofg/iWtnLyiVKw2zh5iYsVLBkd4uTQMNvI+OhDh2IffWK9hU/AHYxh5c7QEAAA==
     Metadata:
       aws:cdk:path: DeployWebAppStack/CDKMetadata/Default
 Outputs:
