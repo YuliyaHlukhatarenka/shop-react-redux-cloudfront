@@ -1,23 +1,20 @@
 import { Handler } from "aws-lambda";
-import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import { DynamoDB } from "@aws-sdk/client-dynamodb";
 
 const PRODUCTS_TABLE_NAME = "products";
 const STOCK_TABLE_NAME = "stock";
 
-const dynamoDB = new DynamoDBClient({ region: "us-east-1" });
+const dynamoDb = DynamoDBDocument.from(new DynamoDB());
 
 export const getProductsFromDynamoDB: Handler = async () => {
-  const productsData = await dynamoDB.send(
-    new ScanCommand({
-      TableName: PRODUCTS_TABLE_NAME,
-    })
-  );
+  const productsData = await dynamoDb.scan({
+    TableName: PRODUCTS_TABLE_NAME,
+  });
 
-  const stocksData = await dynamoDB.send(
-    new ScanCommand({
-      TableName: STOCK_TABLE_NAME,
-    })
-  );
+  const stocksData = await dynamoDb.scan({
+    TableName: STOCK_TABLE_NAME,
+  });
 
   const result = productsData?.Items
     ? productsData.Items.map((product) => ({
@@ -31,7 +28,12 @@ export const getProductsFromDynamoDB: Handler = async () => {
     : [];
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Access-Control-Allow-Origin": "*", // Adjust this according to your requirements
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(result),
   };
 };
