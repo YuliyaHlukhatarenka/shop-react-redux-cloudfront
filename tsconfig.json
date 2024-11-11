@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
+     "noImplicitAny": false,
     "paths": {
       "~/*": ["./*"]
     },
@@ -20,6 +21,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
   },
-  "include": ["src", "infra"],
+  "include": ["src", "infra", "utils"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
