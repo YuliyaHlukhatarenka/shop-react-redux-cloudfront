@@ -11,55 +11,19 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cdk from "aws-cdk-lib";
 import * as path from "path";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as dynamoDb from "aws-cdk-lib/aws-dynamodb";
 
 export class DeploymentService extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     const sources = "../dist";
 
-    const productsTable = dynamoDb.Table.fromTableName(
-      this,
-      "products",
-      "products"
-    );
-    const stockTable = dynamoDb.Table.fromTableName(this, "stock", "stock");
-    const layer = lambda.LayerVersion.fromLayerVersionArn(
-      this,
-      "dependencies",
-      "arn:aws:lambda:us-east-1:686255979517:layer:dependencies:1"
-    );
-
-    const createProduct = new lambda.Function(this, "createProduct", {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      memorySize: 1024,
-      timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/create-product.createProduct",
-      code: lambda.Code.fromAsset(path.join(__dirname, "./")),
-      layers: [layer],
-      environment: {
-        PRODUCTS_TABLE: productsTable.tableName,
-        STOCKS_TABLE: stockTable.tableName,
-      },
-    });
-
-    productsTable.grantReadWriteData(createProduct);
-    stockTable.grantReadWriteData(createProduct);
-
     const getProductsList = new lambda.Function(this, "getProductsList", {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
       timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/get-products.getProductsFromDynamoDB",
+      handler: "handlers.getProductsList",
       code: lambda.Code.fromAsset(path.join(__dirname, "./")),
-      environment: {
-        PRODUCTS_TABLE: productsTable.tableName,
-        STOCKS_TABLE: stockTable.tableName,
-      },
     });
-
-    productsTable.grantReadWriteData(getProductsList);
-    stockTable.grantReadWriteData(getProductsList);
 
     const getAvailableProducts = new lambda.Function(
       this,
@@ -77,16 +41,9 @@ export class DeploymentService extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
       timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/get-product-by-id.getProductByIdFromDynamoDB",
+      handler: "handlers.getProductsById",
       code: lambda.Code.fromAsset(path.join(__dirname, "./")),
-      environment: {
-        PRODUCTS_TABLE: productsTable.tableName,
-        STOCKS_TABLE: stockTable.tableName,
-      },
     });
-
-    productsTable.grantReadWriteData(getProductsById);
-    stockTable.grantReadWriteData(getProductsById);
 
     const api = new apigateway.RestApi(this, "ProductApi", {
       restApiName: "Product Service API",
@@ -97,32 +54,39 @@ export class DeploymentService extends cdk.Stack {
       },
     });
 
-    const createProductIntegration = new apigateway.LambdaIntegration(
-      createProduct
-    );
-
     const getProductsIntegration = new apigateway.LambdaIntegration(
-      getProductsList
+      getProductsList,
+      {
+        requestTemplates: {
+          "application/json": `{ "message": "$input.params('message')" }`,
+        },
+      }
     );
 
     const getAvailableProductsIntegration = new apigateway.LambdaIntegration(
-      getAvailableProducts
+      getAvailableProducts,
+      {
+        requestTemplates: { "application/json": '{ "statusCode": "200" }' },
+      }
     );
 
     const getProductByIdIntegration = new apigateway.LambdaIntegration(
-      getProductsById
+      getProductsById,
+      {
+        requestTemplates: { "application/json": '{ "statusCode": "200" }' },
+      }
     );
 
     const productsResource = api.root.addResource("products");
-    productsResource.addMethod("GET", getProductsIntegration);
+    productsResource.addMethod("GET", getProductsIntegration, {
+      methodResponses: [{ statusCode: "200" }],
+    });
 
     const availableProductsResource = productsResource.addResource("available");
     availableProductsResource.addMethod("GET", getAvailableProductsIntegration);
 
     const productByIdResource = productsResource.addResource("{productId}");
     productByIdResource.addMethod("GET", getProductByIdIntegration);
-
-    productsResource.addMethod("POST", createProductIntegration);
 
     const hostingBucket = new aws_s3.Bucket(this, "FrontendBucket", {
       autoDeleteObjects: true,
