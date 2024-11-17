@@ -13,7 +13,7 @@ import * as path from "path";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamoDb from "aws-cdk-lib/aws-dynamodb";
 
-export class DeploymentService extends cdk.Stack {
+export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     const sources = "../dist";
@@ -34,7 +34,7 @@ export class DeploymentService extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
       timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/create-product.createProduct",
+      handler: "handlers/create-product.createProduct",
       code: lambda.Code.fromAsset(path.join(__dirname, "./")),
       layers: [layer],
       environment: {
@@ -50,7 +50,7 @@ export class DeploymentService extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
       timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/get-products.getProductsFromDynamoDB",
+      handler: "handlers/get-products.getProductsFromDynamoDB",
       code: lambda.Code.fromAsset(path.join(__dirname, "./")),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,
@@ -77,7 +77,7 @@ export class DeploymentService extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,
       timeout: cdk.Duration.seconds(5),
-      handler: "handlersDynamoDB/get-product-by-id.getProductByIdFromDynamoDB",
+      handler: "handlers/get-product-by-id.getProductByIdFromDynamoDB",
       code: lambda.Code.fromAsset(path.join(__dirname, "./")),
       environment: {
         PRODUCTS_TABLE: productsTable.tableName,

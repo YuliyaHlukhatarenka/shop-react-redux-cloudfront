@@ -1,4 +1,4 @@
-[CloudFront URL](https://d1nhm1z4iqfod4.cloudfront.net/)
+[CloudFront URL](https://d2upajdo9jlb9p.cloudfront.net)
 [S3](https://deploywebappstack-deploymentfrontendbucket67ceb713-li7m47dl8gvr.s3.amazonaws.com/)
 
 # React-shop-cloudfront
