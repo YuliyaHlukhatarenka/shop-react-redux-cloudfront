@@ -12,8 +12,8 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 
 export class ImportServiceStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+  constructor(scope: Construct, id: string, authorizerFunctionArn: string) {
+    super(scope, id);
 
     const fileBucket = new s3.Bucket(this, "fileBucket", {
       versioned: true,
@@ -69,8 +69,41 @@ export class ImportServiceStack extends cdk.Stack {
       importFile
     );
 
+    api.addGatewayResponse("AccessDeniedResponse", {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      statusCode: "403",
+      templates: {
+        "application/json": '{"message": Credentials Invalid}',
+      },
+    });
+
+    api.addGatewayResponse("UnauthorizedResponse", {
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      statusCode: "401",
+      templates: {
+        "application/json": '{"message": "Authorization Token Invalid"}',
+      },
+    });
+
+    const authorizerFunction = lambda.Function.fromFunctionArn(
+      this,
+      "authorizerFunction",
+      authorizerFunctionArn
+    );
+
+    const basicAuthorizer = new apigateway.TokenAuthorizer(
+      this,
+      "basicAuthorizer",
+      {
+        handler: authorizerFunction,
+      }
+    );
+
     const productsResource = api.root.addResource("import");
-    productsResource.addMethod("GET", importProductsFileIntegration);
+    productsResource.addMethod("GET", importProductsFileIntegration, {
+      authorizer: basicAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
 
     // Create SQS Queue
     const catalogItemsQueue = new sqs.Queue(this, "product-sqs");
